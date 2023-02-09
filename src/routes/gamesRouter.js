@@ -4,7 +4,7 @@ import {Router} from 'express'
 
 const gamesRouter = Router()
 
-gamesRouter.post('/inserirJogo', inserirJogo)
-gamesRouter.get('/listarJogos', listarJogos)
+gamesRouter.post('/games', inserirJogo)
+gamesRouter.get('/games', listarJogos)
 
 export default gamesRouter
