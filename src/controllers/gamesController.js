@@ -17,6 +17,16 @@ export async function inserirJogo(req, res) {
 
         res.sendStatus(201)
     } catch (error) {
-        res.status(500)
+        res.status(500).send('Ocorreu um erro no servidor')
     }
+}
+export async function listarJogos(req,res){
+        try {
+            const listaJogos = await db.query(`SELECT * FROM games`)
+            res.send(listaJogos.rows)
+        } catch (error) {
+            console.error(error)
+            res.status(500).send('Ocorreu um erro no servidor')
+        }
+
 }
