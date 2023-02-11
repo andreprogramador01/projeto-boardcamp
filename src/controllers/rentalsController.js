@@ -36,12 +36,14 @@ export async function inserirAluguel(req, res) {
 }
 export async function finalizarAluguel(req, res) {
     const { id } = req.params
-    const verificaAluguelFinalizado = await db.query(`SELECT * FROM rentals WHERE id=$1 AND "delayFee" is not null`, [id])
+    try {
+        const verificaAluguelFinalizado = await db.query(`SELECT * FROM rentals WHERE id=$1 AND "delayFee" is not null`, [id])
 
     if (verificaAluguelFinalizado.rowCount > 0) {
         return res.sendStatus(400)
     }
-    await db.query(`UPDATE rentals SET "returnDate"=NOW()::date WHERE id=$1`,[id])
+    await db.query(`UPDATE rentals SET "returnDate"=NOW()::date WHERE id=$1`, [id])
+
     const diasAtraso = await db.query(` SELECT ("returnDate"-"rentDate")-"daysRented" 
                                         AS dias_atraso FROM rentals WHERE id=$1`, [id])
     if (diasAtraso.rowCount === 0) {
@@ -50,9 +52,15 @@ export async function finalizarAluguel(req, res) {
     const precoJogo = await db.query(`SELECT "pricePerDay" FROM games 
                                         JOIN rentals 
                                             ON games.id=rentals."gameId" WHERE rentals.id=$1`, [id])
-    const calculaTaxa = diasAtraso.rows[0].dias_atraso * precoJogo.rows[0].pricePerDay
-    console.log(calculaTaxa)
+    let calculaTaxa = diasAtraso.rows[0].dias_atraso * precoJogo.rows[0].pricePerDay
+    if(calculaTaxa <= 0){
+        calculaTaxa = 0
+    }  
 
-    await db.query(`UPDATE rentals SET "delayFee"=$1 WHERE id=$2`, [calculaTaxa, id])
+        await db.query(`UPDATE rentals SET "delayFee"=$1 WHERE id=$2`, [calculaTaxa, id])
     res.sendStatus(200)
+    } catch (error) {
+        res.status(500).send(error.message)
+    }
+    
 }
