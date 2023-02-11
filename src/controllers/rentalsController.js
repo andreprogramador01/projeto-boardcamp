@@ -39,28 +39,46 @@ export async function finalizarAluguel(req, res) {
     try {
         const verificaAluguelFinalizado = await db.query(`SELECT * FROM rentals WHERE id=$1 AND "delayFee" is not null`, [id])
 
-    if (verificaAluguelFinalizado.rowCount > 0) {
-        return res.sendStatus(400)
-    }
-    await db.query(`UPDATE rentals SET "returnDate"=NOW()::date WHERE id=$1`, [id])
+        if (verificaAluguelFinalizado.rowCount > 0) {
+            return res.sendStatus(400)
+        }
+        await db.query(`UPDATE rentals SET "returnDate"=NOW()::date WHERE id=$1`, [id])
 
-    const diasAtraso = await db.query(` SELECT ("returnDate"-"rentDate")-"daysRented" 
+        const diasAtraso = await db.query(` SELECT ("returnDate"-"rentDate")-"daysRented" 
                                         AS dias_atraso FROM rentals WHERE id=$1`, [id])
-    if (diasAtraso.rowCount === 0) {
-        return res.sendStatus(404)
-    }
-    const precoJogo = await db.query(`SELECT "pricePerDay" FROM games 
+        if (diasAtraso.rowCount === 0) {
+            return res.sendStatus(404)
+        }
+        const precoJogo = await db.query(`SELECT "pricePerDay" FROM games 
                                         JOIN rentals 
                                             ON games.id=rentals."gameId" WHERE rentals.id=$1`, [id])
-    let calculaTaxa = diasAtraso.rows[0].dias_atraso * precoJogo.rows[0].pricePerDay
-    if(calculaTaxa <= 0){
-        calculaTaxa = 0
-    }  
+        let calculaTaxa = diasAtraso.rows[0].dias_atraso * precoJogo.rows[0].pricePerDay
+        if (calculaTaxa <= 0) {
+            calculaTaxa = 0
+        }
 
         await db.query(`UPDATE rentals SET "delayFee"=$1 WHERE id=$2`, [calculaTaxa, id])
-    res.sendStatus(200)
+        res.sendStatus(200)
     } catch (error) {
         res.status(500).send(error.message)
     }
-    
+
+}
+
+export async function listarAlugueis(req, res) {
+    try {
+        const ListaDeAlugueis = await db.query(`SELECT json_build_object('id',rentals.id, 'customerId', rentals."customerId", 'gameId', rentals."gameId",'rentDate', 
+        rentals."rentDate",'daysRented', rentals."daysRented", 'returnDate', rentals."returnDate", 'originalPrice', rentals."originalPrice",'delayFee', rentals."delayFee",
+        'customer', json_build_object('id', customers.id, 'name', customers.name), 
+        'game', json_build_object('id', games.id, 'name',games.name )) AS rental
+        from rentals 
+        JOIN customers 
+            ON customers.id=rentals."customerId" 
+        JOIN games 
+            ON games.id=rentals."gameId";`)
+        res.send(ListaDeAlugueis.rows)
+    } catch (error) {
+        res.status(500).send(error.message)
+    }
+   
 }
