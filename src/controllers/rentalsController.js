@@ -70,15 +70,26 @@ export async function listarAlugueis(req, res) {
         const ListaDeAlugueis = await db.query(`SELECT json_build_object('id',rentals.id, 'customerId', rentals."customerId", 'gameId', rentals."gameId",'rentDate', 
         rentals."rentDate",'daysRented', rentals."daysRented", 'returnDate', rentals."returnDate", 'originalPrice', rentals."originalPrice",'delayFee', rentals."delayFee",
         'customer', json_build_object('id', customers.id, 'name', customers.name), 
-        'game', json_build_object('id', games.id, 'name',games.name )) AS rental
+        'game', json_build_object('id', games.id, 'name',games.name )) 
         from rentals 
         JOIN customers 
             ON customers.id=rentals."customerId" 
         JOIN games 
             ON games.id=rentals."gameId";`)
-        res.send(ListaDeAlugueis.rows)
+        let alugueisFormatado = []
+        
+        for (let i = 0; i < ListaDeAlugueis.rows.length; i++) {
+
+
+            
+            
+            alugueisFormatado.push(ListaDeAlugueis.rows[i].json_build_object)
+           
+        }
+        
+        res.send(alugueisFormatado)
     } catch (error) {
         res.status(500).send(error.message)
     }
-   
+
 }
