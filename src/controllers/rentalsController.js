@@ -77,19 +77,36 @@ export async function listarAlugueis(req, res) {
         JOIN games 
             ON games.id=rentals."gameId";`)
         let alugueisFormatado = []
-        
+
         for (let i = 0; i < ListaDeAlugueis.rows.length; i++) {
 
 
-            
-            
+
+
             alugueisFormatado.push(ListaDeAlugueis.rows[i].json_build_object)
-           
+
         }
-        
+
         res.send(alugueisFormatado)
     } catch (error) {
         res.status(500).send(error.message)
     }
 
+}
+export async function apagarAluguel(req, res) {
+    const { id } = req.params
+    try {
+        const existeAluguel = await db.query('SELECT * FROM rentals WHERE id=$1', [id])
+
+        if(existeAluguel.rowCount===0){
+            return res.sendStatus(404)
+        }
+        if(existeAluguel.rows[0].returnDate === null){
+            return res.sendStatus(400)
+        }
+        await db.query('DELETE FROM rentals WHERE id=$1',[id])
+       return res.status(200).send('Ok')
+    } catch (error) {
+        res.status(500).send(error.message)
+    }
 }
